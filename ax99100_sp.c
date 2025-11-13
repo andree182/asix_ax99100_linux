@@ -1825,7 +1825,7 @@ static unsigned int serial99100_get_divisor(struct uart_port *port, unsigned int
 
 //This is a port ops function to set the terminal settings.
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
-static void serial99100_set_termios(struct uart_port *port, struct ktermios *termios, struct ktermios *old)
+static void serial99100_set_termios(struct uart_port *port, struct ktermios *termios, const struct ktermios *old)
 #else
 static void serial99100_set_termios(struct uart_port *port, struct termios *termios, struct termios *old)
 #endif
@@ -2686,9 +2686,9 @@ int serial99100_register_port(struct uart_port *port,struct pci_dev *dev)
 			serial99100_ports[index].dma_tx=1;
 
 			serial99100_ports[index].dma_tx_buf_v =
-				(char *)pci_alloc_consistent(dev,DMA_TX_BUFFER_SZ,&serial99100_ports[index].dma_tx_buf_p);
+				(char *)dma_alloc_coherent(&dev->dev,DMA_TX_BUFFER_SZ,&serial99100_ports[index].dma_tx_buf_p, GFP_ATOMIC);
 			serial99100_ports[index].dma_tx_buf_v_start =
-				(char *)pci_alloc_consistent(dev,DMA_TX_BUFFER_SZ,&serial99100_ports[index].dma_tx_buf_p_start);
+				(char *)dma_alloc_coherent(&dev->dev,DMA_TX_BUFFER_SZ,&serial99100_ports[index].dma_tx_buf_p_start, GFP_ATOMIC);
 			
 			memset(serial99100_ports[index].dma_tx_buf_v,0,DMA_TX_BUFFER_SZ);
 			memset(serial99100_ports[index].dma_tx_buf_v_start,0,DMA_TX_BUFFER_SZ);
@@ -2707,7 +2707,7 @@ int serial99100_register_port(struct uart_port *port,struct pci_dev *dev)
 		if (uart_99100_contxts[index].rx_dma_en == 1) {
 			serial99100_ports[index].dma_rx=1;
 			serial99100_ports[index].dma_rx_buf_v =
-				(char *)pci_alloc_consistent(dev,DMA_RX_BUFFER_SZ,&serial99100_ports[index].dma_rx_buf_p);
+				(char *)dma_alloc_coherent(&dev->dev,DMA_RX_BUFFER_SZ,&serial99100_ports[index].dma_rx_buf_p, GFP_ATOMIC);
 			memset(serial99100_ports[index].dma_rx_buf_v,0,DMA_RX_BUFFER_SZ);			
 			serial99100_ports[index].part_done_recv_cnt=0;	
 			serial99100_ports[index].rx_dma_done_cnt=0;
@@ -2852,9 +2852,9 @@ static void __devexit serial99100_remove_one(struct pci_dev *dev)
 		uart->port.dev = NULL;		
 		up(&serial99100_sem);
 		
-		pci_free_consistent(dev,DMA_TX_BUFFER_SZ,uart->dma_tx_buf_v,uart->dma_tx_buf_p);
-		pci_free_consistent(dev,DMA_TX_BUFFER_SZ,uart->dma_tx_buf_v_start,uart->dma_tx_buf_p_start);
-		pci_free_consistent(dev,DMA_RX_BUFFER_SZ,uart->dma_rx_buf_v,uart->dma_rx_buf_p);
+		dma_free_coherent(&dev->dev,DMA_TX_BUFFER_SZ,uart->dma_tx_buf_v,uart->dma_tx_buf_p);
+		dma_free_coherent(&dev->dev,DMA_TX_BUFFER_SZ,uart->dma_tx_buf_v_start,uart->dma_tx_buf_p_start);
+		dma_free_coherent(&dev->dev,DMA_RX_BUFFER_SZ,uart->dma_rx_buf_v,uart->dma_rx_buf_p);
 		pci_disable_device(dev);
 
 		//Initialise the uart_99100_port arrays port specific element to the default state
@@ -3121,5 +3121,4 @@ module_exit(serial99100_exit);
 
 MODULE_DEVICE_TABLE(pci, serial99100_pci_tbl);
 MODULE_DESCRIPTION("Asix 99100 serial driver module");
-MODULE_SUPPORTED_DEVICE("Asix serial 99100");
 MODULE_LICENSE("GPL");
