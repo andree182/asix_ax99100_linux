@@ -76,7 +76,7 @@ int spi_suspend_count;
 static unsigned int spi_major = 241;
 static unsigned int spi_min_count = 0;
 /* device Class */
-static char *ax_devnode(struct device *dev, umode_t *mode)
+static char *ax_devnode(const struct device *dev, umode_t *mode)
 {
 	return kasprintf(GFP_KERNEL, "%s", dev_name(dev));
 }
@@ -392,8 +392,8 @@ static void __devexit spi99100_remove_one(struct pci_dev *dev)
 	device = MKDEV(axspi->dev_major, axspi->dev_minor);
 
 	/* DMA free */
-	pci_free_consistent(dev, DMA_BUFFER_SZ, axspi->tx_dma_v,axspi->tx_dma_p);
-	pci_free_consistent(dev, DMA_BUFFER_SZ, axspi->rx_dma_v,axspi->rx_dma_p);
+	dma_free_coherent(&dev->dev, DMA_BUFFER_SZ, axspi->tx_dma_v,axspi->tx_dma_p);
+	dma_free_coherent(&dev->dev, DMA_BUFFER_SZ, axspi->rx_dma_v,axspi->rx_dma_p);
 	
 	if  (dev->subsystem_device != PCI_SUBVEN_ID_AX99100_SPI) {
 		dev_err(&dev->dev, "Not AX99100 SPI device when remove!\n");
@@ -460,7 +460,7 @@ void init_local_data(struct pci_dev *dev)
 	
 	/* DMA for TX */
 	axspi->tx_dma_v =
-		(char *)pci_alloc_consistent(dev,DMA_BUFFER_SZ,&axspi->tx_dma_p);
+		(char *)dma_alloc_coherent(&dev->dev,DMA_BUFFER_SZ,&axspi->tx_dma_p, GFP_ATOMIC);
 	memset(axspi->tx_dma_v,0,DMA_BUFFER_SZ);
 	
 	DEBUG("tx_dma_v=0x%x tx_dma_p=0x%x\n",(unsigned int)axspi->tx_dma_v,
@@ -468,7 +468,7 @@ void init_local_data(struct pci_dev *dev)
 	
 	/* DMA for RX */
 	axspi->rx_dma_v =
-		(char *)pci_alloc_consistent(dev,DMA_BUFFER_SZ,&axspi->rx_dma_p);
+		(char *)dma_alloc_coherent(&dev->dev,DMA_BUFFER_SZ,&axspi->rx_dma_p, GFP_ATOMIC);
 	memset(axspi->rx_dma_v,0,DMA_BUFFER_SZ);
 	
 	DEBUG("rx_dma_v=0x%x rx_dma_p=0x%x\n",(unsigned int)axspi->rx_dma_v,
